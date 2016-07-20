@@ -1,4 +1,4 @@
-package main
+package gb
 
 import (
 	"net/url"

@@ -1,4 +1,4 @@
-package main
+package gb
 
 import (
 	"bytes"
@@ -26,6 +26,7 @@ func PrintReport(context *Context, stats *Stats) {
 	totalFailedReqeusts := stats.totalFailedReqeusts
 	totalRequests := stats.totalRequests
 	totalExecutionTime := stats.totalExecutionTime
+	totalResponseTime := stats.totalResponseTime
 	totalReceived := stats.totalReceived
 
 	URL, _ := url.Parse(config.url)
@@ -39,7 +40,8 @@ func PrintReport(context *Context, stats *Stats) {
 	fmt.Fprintf(&buffer, "Document Length:        %d bytes\n\n", context.GetInt(FieldContentSize))
 
 	fmt.Fprintf(&buffer, "Concurrency Level:      %d\n", config.concurrency)
-	fmt.Fprintf(&buffer, "Time taken for tests:   %.2f seconds\n", totalExecutionTime.Seconds())
+	fmt.Fprintf(&buffer, "Time taken for tests:   %.6f seconds\n", totalExecutionTime.Seconds())
+	fmt.Fprintf(&buffer, "Time taken in millis:   %d ms\n", int64(totalResponseTime)/int64(time.Millisecond))
 	fmt.Fprintf(&buffer, "Complete requests:      %d\n", totalRequests)
 	if totalFailedReqeusts == 0 {
 		fmt.Fprintln(&buffer, "Failed requests:        0")
@@ -52,11 +54,12 @@ func PrintReport(context *Context, stats *Stats) {
 	}
 	fmt.Fprintf(&buffer, "HTML transferred:       %d bytes\n", totalReceived)
 
-	if len(responseTimeData) > 0 && totalExecutionTime > 0 {
+	if len(responseTimeData) > 0 && totalResponseTime > 0 {
+		//var datacount = len(responseTimeData)
 		stdDevOfResponseTime := stdDev(responseTimeData) / 1000000
 		sort.Sort(durationSlice(responseTimeData))
 
-		meanOfResponseTime := int64(totalExecutionTime) / int64(totalRequests) / 1000000
+		meanOfResponseTime := int64(totalResponseTime) / int64(totalRequests-totalFailedReqeusts) / 1000000
 		medianOfResponseTime := responseTimeData[len(responseTimeData)/2] / 1000000
 		minResponseTime := responseTimeData[0] / 1000000
 		maxResponseTime := responseTimeData[len(responseTimeData)-1] / 1000000
@@ -68,7 +71,7 @@ func PrintReport(context *Context, stats *Stats) {
 
 		fmt.Fprint(&buffer, "Connection Times (ms)\n")
 		fmt.Fprint(&buffer, "              min\tmean[+/-sd]\tmedian\tmax\n")
-		fmt.Fprintf(&buffer, "Total:        %d     \t%d   %.2f \t%d \t%d\n\n",
+		fmt.Fprintf(&buffer, "Total:        %d     \t%d   ±%.2f \t%d \t%d\n\n",
 			minResponseTime,
 			meanOfResponseTime,
 			stdDevOfResponseTime,
@@ -85,6 +88,13 @@ func PrintReport(context *Context, stats *Stats) {
 		fmt.Fprintf(&buffer, " %d%%\t %d (longest request)\n", 100, maxResponseTime)
 	}
 	fmt.Println(buffer.String())
+
+	//	if len(responseTimeData) > 0 {
+	//		fmt.Println("\n---all---\n")
+	//		for i, date := range responseTimeData {
+	//			fmt.Printf(" %5d: %6d\n", i, int64(date)/int64(time.Millisecond))
+	//		}
+	//	}
 }
 
 type durationSlice []time.Duration

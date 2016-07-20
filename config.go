@@ -1,4 +1,4 @@
-package main
+package gb
 
 import (
 	"errors"
@@ -30,9 +30,26 @@ type Config struct {
 	basicAuthentication string
 	userAgent           string
 
+	proxyURL *url.URL
+
 	url  string
 	host string
 	port int
+}
+
+func (c *Config) SetProxy(proxyURL string) error {
+	if proxyURL == "" {
+		return nil
+	}
+	if pURL, err := url.Parse(proxyURL); err == nil {
+		c.proxyURL = pURL
+		return nil
+	} else {
+		return err
+	}
+}
+func (c *Config) GetKeepAlive() bool {
+	return c.keepAlive
 }
 
 func LoadConfig() (config *Config, err error) {
@@ -46,6 +63,7 @@ func LoadConfig() (config *Config, err error) {
 	timelimit := flag.Int("t", 0, "Seconds to max. wait for responses")
 
 	postFile := flag.String("p", "", "File containing data to POST. Remember also to set -T")
+	proxyFlag := flag.String("x", "", "http proxy")
 	putFile := flag.String("u", "", "File containing data to PUT. Remember also to set -T")
 	headMethod := flag.Bool("i", false, "Use HEAD instead of GET")
 	contentType := flag.String("T", "text/plain", "Content-type header for POSTing, eg. 'application/x-www-form-urlencoded' Default is 'text/plain'")
@@ -89,6 +107,12 @@ func LoadConfig() (config *Config, err error) {
 	config = &Config{}
 	config.requests = *request
 	config.concurrency = *concurrency
+
+	if err := config.SetProxy(*proxyFlag); err != nil {
+		fmt.Println("proxy url is not well format.", err)
+		flag.Usage()
+		os.Exit(-1)
+	}
 
 	switch {
 	case *postFile != "":

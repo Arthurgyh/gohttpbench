@@ -1,4 +1,4 @@
-package main
+package gb
 
 import (
 	"bytes"
@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	//	"runtime/pprof"
 )
 
 const (
@@ -23,12 +25,18 @@ var (
 	ErrInvalidContnetSize = errors.New("invalid content size")
 )
 
+type CustomRequest interface {
+	Prepare(config *Config, request *http.Request, index int) (*http.Request, error)
+	HandleResult(wk *HTTPWorker, response *http.Response) (n int64, err error)
+}
+
 type HTTPWorker struct {
 	c         *Context
 	client    *http.Client
 	jobs      chan *http.Request
 	collector chan *Record
 	discard   io.ReaderFrom
+	Custom    CustomRequest
 }
 
 func NewHTTPWorker(context *Context, jobs chan *http.Request, collector chan *Record) *HTTPWorker {
@@ -47,23 +55,32 @@ func NewHTTPWorker(context *Context, jobs chan *http.Request, collector chan *Re
 		jobs,
 		collector,
 		&Discard{buf},
+		nil,
 	}
 }
 
-func (h *HTTPWorker) Run() {
+const profila = "D:/dev/ops/ops_client_test/client_test/loadtest/bin/cpuprofile_a%02d.prof"
+
+func (h *HTTPWorker) Run(i int) {
+	var fpath = fmt.Sprintf(profila, i)
+	_ = fpath
+	//	fmt.Println(fpath)
+
 	h.c.start.Done()
 	h.c.start.Wait()
 
 	timer := time.NewTimer(h.c.config.executionTimeout)
-
+	var count int = 0
 	for job := range h.jobs {
-
+		count++
 		timer.Reset(h.c.config.executionTimeout)
 		asyncResult := h.send(job)
 
 		select {
 		case record := <-asyncResult:
-			h.collector <- record
+			if count > 1 {
+				h.collector <- record
+			}
 
 		case <-timer.C:
 			h.collector <- &Record{Error: &ResponseTimeoutError{errors.New("execution timeout")}}
@@ -121,7 +138,12 @@ func (h *HTTPWorker) send(request *http.Request) (asyncResult chan *Record) {
 			return
 		}
 
+		//		if h.Custom != nil {
+		//			contentSize, err = h.Custom.HandleResult(h, resp)
+		//		} else {
 		contentSize, err = h.discard.ReadFrom(resp.Body)
+		//		}
+
 		if err != nil {
 			if err == io.ErrUnexpectedEOF {
 				record.Error = &LengthError{ErrInvalidContnetSize}
@@ -200,14 +222,21 @@ func NewClient(config *Config) *http.Client {
 	// TODO: tcp options
 	// TODO: monitor tcp metrics
 	transport := &http.Transport{
-		DisableCompression: !config.gzip,
-		DisableKeepAlives:  !config.keepAlive,
-		TLSClientConfig:    tlsconfig,
+		DisableCompression:  !config.gzip,
+		DisableKeepAlives:   !config.keepAlive,
+		TLSClientConfig:     tlsconfig,
+		MaxIdleConnsPerHost: config.concurrency * 2,
+	}
+
+	if config.proxyURL != nil {
+		transport.Proxy = http.ProxyURL(config.proxyURL)
 	}
 
 	return &http.Client{Transport: transport}
 }
-
+func simpleNewHTTPRequest(config *Config) (request *http.Request, err error) {
+	return nil, nil
+}
 func NewHTTPRequest(config *Config) (request *http.Request, err error) {
 
 	var body io.Reader
@@ -248,12 +277,17 @@ func NewHTTPRequest(config *Config) (request *http.Request, err error) {
 	return
 }
 
-func CopyHTTPRequest(config *Config, request *http.Request) *http.Request {
+func simpleCopyHTTPRequest(config *Config, request *http.Request) *http.Request {
 	newRequest := *request
 	if request.Body != nil {
 		newRequest.Body = ioutil.NopCloser(bytes.NewReader(config.bodyContent))
 	}
 	return &newRequest
+}
+
+func CopyHTTPRequest(config *Config, request *http.Request) *http.Request {
+
+	return simpleCopyHTTPRequest(config, request)
 }
 
 type LengthError struct {

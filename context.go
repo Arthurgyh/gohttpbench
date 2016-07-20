@@ -1,4 +1,4 @@
-package main
+package gb
 
 import (
 	"sync"
@@ -14,7 +14,7 @@ type Context struct {
 
 func NewContext(config *Config) *Context {
 	start := &sync.WaitGroup{}
-	start.Add(config.concurrency)
+	start.Add(config.concurrency + 1)
 	return &Context{config, start, make(chan struct{}), &sync.RWMutex{}, make(map[string]interface{})}
 }
 

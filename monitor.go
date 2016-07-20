@@ -1,16 +1,17 @@
-package main
+package gb
 
 import (
 	"fmt"
 	"os"
 	"os/signal"
+	_ "sync/atomic"
 	"time"
 )
 
 type Monitor struct {
 	c         *Context
 	collector chan *Record
-	output    chan *Stats
+	Output    chan *Stats
 }
 
 type Stats struct {
@@ -39,7 +40,7 @@ func (m *Monitor) Run() {
 	userInterrupt := make(chan os.Signal, 1)
 	signal.Notify(userInterrupt, os.Interrupt)
 
-	stats := &Stats{}
+	stats := &Stats{totalResponseTime: time.Duration(0)}
 	stats.responseTimeData = make([]time.Duration, 0, m.c.config.requests)
 
 	var timelimiter <-chan time.Time
@@ -89,7 +90,7 @@ loop:
 	// shutdown benchmark and all of httpworkers to stop
 	close(m.c.stop)
 	signal.Stop(userInterrupt)
-	m.output <- stats
+	m.Output <- stats
 }
 
 func updateStats(stats *Stats, record *Record) {
@@ -114,6 +115,7 @@ func updateStats(stats *Stats, record *Record) {
 		}
 
 	} else {
+		//		stats.totalResponseTime = time.Duration(int64(stats.totalResponseTime) + int64(record.responseTime))
 		stats.totalResponseTime += record.responseTime
 		stats.totalReceived += record.contentSize
 		stats.responseTimeData = append(stats.responseTimeData, record.responseTime)
