@@ -26,7 +26,7 @@ func TraceException(msg interface{}) {
 	case Verbosity > 1:
 		// print recovered error and stacktrace
 		var buffer bytes.Buffer
-		buffer.WriteString(fmt.Sprintf("recover: %v\n", msg))
+		buffer.WriteString(fmt.Sprintf("recover: %s\n", msg))
 		for skip := 1; ; skip++ {
 			pc, file, line, ok := runtime.Caller(skip)
 			if !ok {

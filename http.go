@@ -3,7 +3,7 @@ package gb
 import (
 	"bytes"
 	"crypto/tls"
-	"errors"
+	//	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,6 +13,7 @@ import (
 	"time"
 
 	//	"runtime/pprof"
+	"github.com/go-errors/errors"
 )
 
 const (
@@ -104,11 +105,15 @@ func (h *HTTPWorker) send(request *http.Request) (asyncResult chan *Record) {
 		sw.Start()
 
 		var contentSize int64
+		_ = contentSize
 
 		defer func() {
 			if r := recover(); r != nil {
+				fmt.Printf("err recovered %s \n\n", errors.Wrap(r, 2).ErrorStack())
+
 				if Err, ok := r.(error); ok {
 					record.Error = Err
+
 				} else {
 					record.Error = &ExceptionError{errors.New(fmt.Sprint(r))}
 				}
@@ -119,7 +124,7 @@ func (h *HTTPWorker) send(request *http.Request) (asyncResult chan *Record) {
 			}
 
 			if record.Error != nil {
-				TraceException(record.Error)
+				TraceException(record.Error.Error())
 			}
 
 			asyncResult <- record
@@ -134,7 +139,8 @@ func (h *HTTPWorker) send(request *http.Request) (asyncResult chan *Record) {
 		defer resp.Body.Close()
 
 		if resp.StatusCode < 200 || resp.StatusCode > 300 {
-			record.Error = &ResponseError{err}
+			record.Error = &ResponseError{errors.Errorf("Response is %d", resp.StatusCode)}
+			//record.Error = &ResponseError{err}
 			return
 		}
 
@@ -180,6 +186,7 @@ func (d *Discard) ReadFrom(r io.Reader) (n int64, err error) {
 func DetectHost(context *Context) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			fmt.Printf("err recovered %s \n\n", errors.Wrap(r, 2).ErrorStack())
 			TraceException(r)
 		}
 	}()

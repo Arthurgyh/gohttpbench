@@ -2,7 +2,6 @@ package gb
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/maximmartynov/flag"
 )
 
 type Config struct {
@@ -53,53 +54,62 @@ func (c *Config) GetKeepAlive() bool {
 }
 
 func LoadConfig() (config *Config, err error) {
+
+	var flagSet = flag.NewFlagSet("gb", flag.IgnoreError)
+
 	// setup command-line flags
-	flag.IntVar(&Verbosity, "v", 0, "How much troubleshooting info to print")
-	flag.IntVar(&GoMaxProcs, "G", runtime.NumCPU(), "Number of CPU")
-	flag.BoolVar(&ContinueOnError, "r", false, "Don't exit when errors")
+	flagSet.IntVar(&Verbosity, "v", 0, "How much troubleshooting info to print")
+	flagSet.IntVar(&GoMaxProcs, "G", runtime.NumCPU(), "Number of CPU")
+	flagSet.BoolVar(&ContinueOnError, "r", false, "Don't exit when errors")
 
-	request := flag.Int("n", 1, "Number of requests to perform")
-	concurrency := flag.Int("c", 1, "Number of multiple requests to make")
-	timelimit := flag.Int("t", 0, "Seconds to max. wait for responses")
+	request := flagSet.Int("n", 1, "Number of requests to perform")
+	concurrency := flagSet.Int("c", 1, "Number of multiple requests to make")
+	timelimit := flagSet.Int("t", 0, "Seconds to max. wait for responses")
 
-	postFile := flag.String("p", "", "File containing data to POST. Remember also to set -T")
-	proxyFlag := flag.String("x", "", "http proxy")
-	putFile := flag.String("u", "", "File containing data to PUT. Remember also to set -T")
-	headMethod := flag.Bool("i", false, "Use HEAD instead of GET")
-	contentType := flag.String("T", "text/plain", "Content-type header for POSTing, eg. 'application/x-www-form-urlencoded' Default is 'text/plain'")
+	postFile := flagSet.String("p", "", "File containing data to POST. Remember also to set -T")
+	proxyFlag := flagSet.String("x", "", "http proxy")
+	putFile := flagSet.String("u", "", "File containing data to PUT. Remember also to set -T")
+	headMethod := flagSet.Bool("i", false, "Use HEAD instead of GET")
+	contentType := flagSet.String("T", "text/plain", "Content-type header for POSTing, eg. 'application/x-www-form-urlencoded' Default is 'text/plain'")
 
 	var headers, cookies stringSet
-	flag.Var(&headers, "H", "Add Arbitrary header line, eg. 'Accept-Encoding: gzip' Inserted after all normal header lines. (repeatable)")
-	flag.Var(&cookies, "C", "Add cookie, eg. 'Apache=1234. (repeatable)")
+	flagSet.Var(&headers, "H", "Add Arbitrary header line, eg. 'Accept-Encoding: gzip' Inserted after all normal header lines. (repeatable)")
+	flagSet.Var(&cookies, "C", "Add cookie, eg. 'Apache=1234. (repeatable)")
 
-	basicAuthentication := flag.String("A", "", "Add Basic WWW Authentication, the attributes are a colon separated username and password.")
-	keepAlive := flag.Bool("k", false, "Use HTTP KeepAlive feature")
-	gzip := flag.Bool("z", false, "Use HTTP Gzip feature")
+	basicAuthentication := flagSet.String("A", "", "Add Basic WWW Authentication, the attributes are a colon separated username and password.")
+	keepAlive := flagSet.Bool("k", false, "Use HTTP KeepAlive feature")
+	gzip := flagSet.Bool("z", false, "Use HTTP Gzip feature")
 
-	showHelp := flag.Bool("h", false, "Display usage information (this message)")
+	showHelp := flagSet.Bool("h", false, "Display usage information (this message)")
 
-	flag.Usage = func() {
+	var defaultErrmsg string = ""
+	flagSet.Usage = func() {
+		if defaultErrmsg != "" {
+			fmt.Printf("%s\n", defaultErrmsg)
+		}
 		fmt.Print("Usage: gb [options] http[s]://hostname[:port]/path\nOptions are:\n")
-		flag.PrintDefaults()
+		flagSet.PrintDefaults()
 	}
 
-	flag.Parse()
+	flagSet.Parse(os.Args[1:])
 
 	if *showHelp {
-		flag.Usage()
+		flagSet.Usage()
 		os.Exit(0)
 	}
 
-	if flag.NArg() != 1 {
-		flag.Usage()
+	if flagSet.NArg() != 1 {
+		defaultErrmsg = "err:no url"
+		flagSet.Usage()
 		os.Exit(-1)
 	}
 
-	urlStr := strings.Trim(strings.Join(flag.Args(), ""), " ")
+	urlStr := strings.Trim(strings.Join(flagSet.Args(), ""), " ")
 	isURL, _ := regexp.MatchString(`http.*?://.*`, urlStr)
 
 	if !isURL {
-		flag.Usage()
+		defaultErrmsg = "err:not url string"
+		flagSet.Usage()
 		os.Exit(-1)
 	}
 
@@ -110,7 +120,7 @@ func LoadConfig() (config *Config, err error) {
 
 	if err := config.SetProxy(*proxyFlag); err != nil {
 		fmt.Println("proxy url is not well format.", err)
-		flag.Usage()
+		flagSet.Usage()
 		os.Exit(-1)
 	}
 
