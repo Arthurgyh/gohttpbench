@@ -52,8 +52,16 @@ func (b *Benchmark) Run() {
 
 func (b *Benchmark) RunCustom(custom CustomRequest) {
 
+	//	reqscount := b.c.config.requests + b.c.config.concurrency
+	var reqscount int
+	if b.c.config.skipFirst {
+		reqscount = b.c.config.requests + b.c.config.concurrency
+	} else {
+		reqscount = b.c.config.requests
+	}
+
 	//	jobs := make(chan *http.Request, b.c.config.concurrency*GoMaxProcs)
-	jobs := make(chan *http.Request, b.c.config.requests+b.c.config.concurrency)
+	jobs := make(chan *http.Request, reqscount)
 
 	for i := 0; i < b.c.config.concurrency; i++ {
 		h := NewHTTPWorker(b.c, jobs, b.Collector)
@@ -67,7 +75,8 @@ func (b *Benchmark) RunCustom(custom CustomRequest) {
 	} else {
 		base, _ = NewHTTPRequest(b.c.config)
 	}
-	for i := 0; i < b.c.config.requests+b.c.config.concurrency; i++ {
+
+	for i := 0; i < reqscount; i++ {
 		if custom != nil {
 			rq, _ := custom.Prepare(b.c.config, base, i)
 			jobs <- rq

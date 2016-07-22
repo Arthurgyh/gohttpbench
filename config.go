@@ -28,6 +28,7 @@ type Config struct {
 	cookies             []string
 	gzip                bool
 	keepAlive           bool
+	skipFirst           bool
 	basicAuthentication string
 	userAgent           string
 
@@ -79,6 +80,8 @@ func LoadConfig() (config *Config, err error) {
 	basicAuthentication := flagSet.String("A", "", "Add Basic WWW Authentication, the attributes are a colon separated username and password.")
 	keepAlive := flagSet.Bool("k", false, "Use HTTP KeepAlive feature")
 	gzip := flagSet.Bool("z", false, "Use HTTP Gzip feature")
+
+	skip := flagSet.Bool("s", false, "Skip first request to value query performance after connected and keep-aliveed.(discount connect time).")
 
 	showHelp := flagSet.Bool("h", false, "Display usage information (this message)")
 
@@ -152,6 +155,7 @@ func LoadConfig() (config *Config, err error) {
 	config.contentType = *contentType
 	config.keepAlive = *keepAlive
 	config.gzip = *gzip
+	config.skipFirst = *skip
 	config.basicAuthentication = *basicAuthentication
 	config.headers = []string(headers)
 	config.cookies = []string(cookies)

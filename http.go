@@ -62,6 +62,9 @@ func NewHTTPWorker(context *Context, jobs chan *http.Request, collector chan *Re
 
 const profila = "D:/dev/ops/ops_client_test/client_test/loadtest/bin/cpuprofile_a%02d.prof"
 
+func (h *HTTPWorker) GetReader() io.ReaderFrom {
+	return h.discard
+}
 func (h *HTTPWorker) Run(i int) {
 	var fpath = fmt.Sprintf(profila, i)
 	_ = fpath
@@ -79,9 +82,9 @@ func (h *HTTPWorker) Run(i int) {
 
 		select {
 		case record := <-asyncResult:
-			//			if count > 1 {
-			h.collector <- record
-			//			}
+			if !h.c.config.skipFirst || count > 1 {
+				h.collector <- record
+			}
 
 		case <-timer.C:
 			h.collector <- &Record{Error: &ResponseTimeoutError{errors.New("execution timeout")}}
@@ -151,6 +154,7 @@ func (h *HTTPWorker) send(request *http.Request) (asyncResult chan *Record) {
 		}
 
 		if err != nil {
+			fmt.Printf("err in read: %s", err.Error())
 			if err == io.ErrUnexpectedEOF {
 				record.Error = &LengthError{ErrInvalidContnetSize}
 				//return
@@ -181,6 +185,9 @@ func (d *Discard) ReadFrom(r io.Reader) (n int64, err error) {
 			return
 		}
 	}
+}
+func (d *Discard) GetBuffer() []byte {
+	return d.blackHole
 }
 
 func DetectHost(context *Context) (err error) {
