@@ -79,9 +79,9 @@ func (h *HTTPWorker) Run(i int) {
 
 		select {
 		case record := <-asyncResult:
-			if count > 1 {
-				h.collector <- record
-			}
+			//			if count > 1 {
+			h.collector <- record
+			//			}
 
 		case <-timer.C:
 			h.collector <- &Record{Error: &ResponseTimeoutError{errors.New("execution timeout")}}
