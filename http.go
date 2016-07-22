@@ -144,11 +144,11 @@ func (h *HTTPWorker) send(request *http.Request) (asyncResult chan *Record) {
 			return
 		}
 
-		//		if h.Custom != nil {
-		//			contentSize, err = h.Custom.HandleResult(h, resp)
-		//		} else {
-		contentSize, err = h.discard.ReadFrom(resp.Body)
-		//		}
+		if h.Custom != nil {
+			contentSize, err = h.Custom.HandleResult(h, resp)
+		} else {
+			contentSize, err = h.discard.ReadFrom(resp.Body)
+		}
 
 		if err != nil {
 			if err == io.ErrUnexpectedEOF {
