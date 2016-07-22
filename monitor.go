@@ -18,6 +18,7 @@ type Stats struct {
 	responseTimeData []time.Duration
 
 	totalRequests       int
+	totalSuccess        int
 	totalExecutionTime  time.Duration
 	totalResponseTime   time.Duration
 	totalReceived       int64
@@ -119,6 +120,7 @@ func updateStats(stats *Stats, record *Record) {
 		stats.totalResponseTime += record.responseTime
 		stats.totalReceived += record.contentSize
 		stats.responseTimeData = append(stats.responseTimeData, record.responseTime)
+		stats.totalSuccess++
 	}
 
 }

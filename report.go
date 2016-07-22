@@ -43,11 +43,12 @@ func PrintReport(context *Context, stats *Stats) {
 	fmt.Fprintf(&buffer, "Time taken for tests:   %.6f seconds\n", totalExecutionTime.Seconds())
 	fmt.Fprintf(&buffer, "Time taken in millis:   %d ms\n", int64(totalResponseTime)/int64(time.Millisecond))
 	fmt.Fprintf(&buffer, "Complete requests:      %d\n", totalRequests)
+	fmt.Fprintf(&buffer, "Success requests:       %d\n", stats.totalSuccess)
 	if totalFailedReqeusts == 0 {
 		fmt.Fprintln(&buffer, "Failed requests:        0")
 	} else {
 		fmt.Fprintf(&buffer, "Failed requests:        %d\n", totalFailedReqeusts)
-		fmt.Fprintf(&buffer, "   (Connect: %d, Receive: %d, Length: %d, Exceptions: %d)\n", stats.errConnect, stats.errReceive, stats.errLength, stats.errException)
+		fmt.Fprintf(&buffer, "   (Connect: %d, Receive: %d, Response: %d, Length: %d, Exceptions: %d)\n", stats.errConnect, stats.errReceive, stats.errResponse, stats.errLength, stats.errException)
 	}
 	if stats.errResponse > 0 {
 		fmt.Fprintf(&buffer, "Non-2xx responses:      %d\n", stats.errResponse)
