@@ -153,11 +153,11 @@ func (h *HTTPWorker) send(request *http.Request) (asyncResult chan *Record) {
 		if err != nil {
 			if err == io.ErrUnexpectedEOF {
 				record.Error = &LengthError{ErrInvalidContnetSize}
-				return
+				//return
 			}
 
 			record.Error = &ReceiveError{err}
-			return
+			//return
 		}
 
 		sw.Stop()
