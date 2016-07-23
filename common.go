@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -17,16 +18,27 @@ func (s *StopWatch) Start() {
 	s.start = time.Now()
 }
 
+var errorCount map[string]int
+var cancelCnt int = 0
+
 func (s *StopWatch) Stop() {
 	s.Elapsed = time.Now().Sub(s.start)
 }
 
 func TraceException(msg interface{}) {
+	var str = string(msg)
+	if strings.HasSuffix(str, "net/http: request canceled") {
+		if cancelCnt > 0 {
+			return
+		} else {
+			cancelCnt++
+		}
+	}
 	switch {
 	case Verbosity > 1:
 		// print recovered error and stacktrace
 		var buffer bytes.Buffer
-		buffer.WriteString(fmt.Sprintf("recover: %s\n", msg))
+		buffer.WriteString(fmt.Sprintf("errors: %s\n", msg))
 		for skip := 1; ; skip++ {
 			pc, file, line, ok := runtime.Caller(skip)
 			if !ok {
