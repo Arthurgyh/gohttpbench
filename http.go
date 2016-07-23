@@ -111,6 +111,9 @@ func (h *HTTPWorker) send(request *http.Request) (asyncResult chan *Record) {
 		_ = contentSize
 
 		defer func() {
+			sw.Stop()
+			record.responseTime = sw.Elapsed
+
 			if r := recover(); r != nil {
 				fmt.Printf("err recovered %s \n\n", errors.Wrap(r, 2).ErrorStack())
 
@@ -123,7 +126,7 @@ func (h *HTTPWorker) send(request *http.Request) (asyncResult chan *Record) {
 
 			} else {
 				record.contentSize = contentSize
-				record.responseTime = sw.Elapsed
+
 			}
 
 			if record.Error != nil {
@@ -141,19 +144,17 @@ func (h *HTTPWorker) send(request *http.Request) (asyncResult chan *Record) {
 
 		defer resp.Body.Close()
 
-		if resp.StatusCode < 200 || resp.StatusCode > 300 {
-			record.Error = &ResponseError{errors.Errorf("Response is %d", resp.StatusCode)}
-			//record.Error = &ResponseError{err}
-			return
-		}
-
 		if h.Custom != nil {
 			contentSize, err = h.Custom.HandleResult(h, resp)
 		} else {
 			contentSize, err = h.discard.ReadFrom(resp.Body)
 		}
 
-		if err != nil {
+		if resp.StatusCode < 200 || resp.StatusCode > 300 {
+			record.Error = &ResponseError{errors.Errorf("Response is %d", resp.StatusCode)}
+			//record.Error = &ResponseError{err}
+			//return
+		} else if err != nil {
 			fmt.Printf("err in read: %s", err.Error())
 			if err == io.ErrUnexpectedEOF {
 				record.Error = &LengthError{ErrInvalidContnetSize}
@@ -164,7 +165,6 @@ func (h *HTTPWorker) send(request *http.Request) (asyncResult chan *Record) {
 			//return
 		}
 
-		sw.Stop()
 	}()
 	return asyncResult
 }

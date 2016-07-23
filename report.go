@@ -17,6 +17,14 @@ Licensed under the MIT license
 `)
 }
 
+func div(dur time.Duration, count int) (rez float64) {
+	if count == 0 {
+		return 0
+	} else {
+		return float64(dur.Nanoseconds()) / float64(time.Millisecond) / float64(count)
+	}
+}
+
 func PrintReport(context *Context, stats *Stats) {
 
 	var buffer bytes.Buffer
@@ -48,6 +56,19 @@ func PrintReport(context *Context, stats *Stats) {
 		fmt.Fprintln(&buffer, "Failed requests:        0")
 	} else {
 		fmt.Fprintf(&buffer, "Failed requests:        %d\n", totalFailedReqeusts)
+
+		fmt.Fprint(&buffer, "Failed types and avg Query Times(ms)\n")
+		fmt.Fprint(&buffer, "       \tSuccess\tConnect\tReceive\tResponse Length\tExceptions\n")
+		fmt.Fprintf(&buffer, "Total:\t%d \t%d \t%d \t%d \t %d \t%d\n",
+			stats.totalSuccess, stats.errConnect, stats.errReceive, stats.errResponse, stats.errLength, stats.errException)
+		fmt.Fprintf(&buffer, "Times:\t%.2f\t%.2f\t%.2f\t%.2f\t %.2f\t%.2f\n",
+			div(stats.totalResponseTime, stats.totalSuccess),
+			div(stats.errConnectDur, stats.errConnect),
+			div(stats.errReceiveDur, stats.errReceive),
+			div(stats.errResponseDur, stats.errResponse),
+			div(stats.errLengthDur, stats.errLength),
+			div(stats.errExceptionDur, stats.errException))
+
 		fmt.Fprintf(&buffer, "   (Connect: %d, Receive: %d, Response: %d, Length: %d, Exceptions: %d)\n", stats.errConnect, stats.errReceive, stats.errResponse, stats.errLength, stats.errException)
 	}
 	if stats.errResponse > 0 {
@@ -71,8 +92,8 @@ func PrintReport(context *Context, stats *Stats) {
 		fmt.Fprintf(&buffer, "HTML Transfer rate:     %.2f [Kbytes/sec] received\n\n", float64(totalReceived/1024)/totalExecutionTime.Seconds())
 
 		fmt.Fprint(&buffer, "Connection Times (ms)\n")
-		fmt.Fprint(&buffer, "              min\tmean[+/-sd]\tmedian\tmax\n")
-		fmt.Fprintf(&buffer, "Total:        %d     \t%d   ±%.2f \t%d \t%d\n\n",
+		fmt.Fprint(&buffer, "              min\tmean[+/-sd]\t\tmedian\tmax\n")
+		fmt.Fprintf(&buffer, "Total:        %d     \t%d   ±%.2f \t %d \t%d\n\n",
 			minResponseTime,
 			meanOfResponseTime,
 			stdDevOfResponseTime,

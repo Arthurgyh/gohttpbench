@@ -24,11 +24,16 @@ type Stats struct {
 	totalReceived       int64
 	totalFailedReqeusts int
 
-	errLength    int
-	errConnect   int
-	errReceive   int
-	errException int
-	errResponse  int
+	errLength       int
+	errLengthDur    time.Duration
+	errConnect      int
+	errConnectDur   time.Duration
+	errReceive      int
+	errReceiveDur   time.Duration
+	errException    int
+	errExceptionDur time.Duration
+	errResponse     int
+	errResponseDur  time.Duration
 }
 
 func NewMonitor(context *Context, collector chan *Record) *Monitor {
@@ -103,16 +108,22 @@ func updateStats(stats *Stats, record *Record) {
 		switch record.Error.(type) {
 		case *ConnectError:
 			stats.errConnect++
+			stats.errConnectDur += record.responseTime
 		case *ExceptionError:
 			stats.errException++
+			stats.errExceptionDur += record.responseTime
 		case *LengthError:
 			stats.errLength++
+			stats.errLengthDur += record.responseTime
 		case *ReceiveError:
 			stats.errReceive++
+			stats.errReceiveDur += record.responseTime
 		case *ResponseError:
 			stats.errResponse++
+			stats.errResponseDur += record.responseTime
 		default:
 			stats.errException++
+			stats.errExceptionDur += record.responseTime
 		}
 
 	} else {
