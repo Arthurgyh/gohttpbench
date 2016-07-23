@@ -26,7 +26,7 @@ func (s *StopWatch) Stop() {
 }
 
 func TraceException(msg interface{}) {
-	var str = string(msg)
+	var str = fmt.Sprintf("%s", msg)
 	if strings.HasSuffix(str, "net/http: request canceled") {
 		if cancelCnt > 0 {
 			return
