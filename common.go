@@ -25,8 +25,25 @@ func (s *StopWatch) Stop() {
 	s.Elapsed = time.Now().Sub(s.start)
 }
 
+func ReportAll() {
+	for key, value := range errorCount {
+		fmt.Println("count:[", value, "]:", key)
+	}
+}
+
 func TraceException(msg interface{}) {
+	if errorCount == nil {
+		errorCount = make(map[string]int, 100)
+	}
+
 	var str = fmt.Sprintf("%s", msg)
+	var c = errorCount[str]
+	errorCount[str] = errorCount[str] + 1
+
+	if c > 1 {
+		return
+	}
+
 	if strings.HasSuffix(str, "net/http: request canceled") {
 		if cancelCnt > 0 {
 			return
