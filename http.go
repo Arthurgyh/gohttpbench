@@ -136,10 +136,26 @@ func (h *HTTPWorker) send(request *http.Request) (asyncResult chan *Record) {
 			asyncResult <- record
 		}()
 
-		resp, err := h.client.Do(request)
-		if err != nil {
-			record.Error = &ConnectError{err}
-			return
+		var retry = 3
+		var (
+			resp *http.Response
+			err  error
+		)
+		for {
+			resp, err = h.client.Do(request)
+			retry = retry - 1
+			if err != nil {
+				if retry <= 0 {
+					time.Sleep(time.Second)
+					record.Error = &ConnectError{err}
+					fmt.Println(" ......stop retry...." + err.Error())
+					return
+				} else {
+					fmt.Println(" ......retry...." + err.Error())
+				}
+			} else {
+				break
+			}
 		}
 
 		defer resp.Body.Close()
@@ -155,7 +171,7 @@ func (h *HTTPWorker) send(request *http.Request) (asyncResult chan *Record) {
 			//record.Error = &ResponseError{err}
 			//return
 		} else if err != nil {
-			//			fmt.Printf("err in read: %s\n", err.Error())
+			fmt.Printf("err in read: %s\n", err.Error())
 			if err == io.ErrUnexpectedEOF {
 				record.Error = &LengthError{ErrInvalidContnetSize}
 				//return
@@ -265,6 +281,7 @@ func NewHTTPRequest(config *Config) (request *http.Request, err error) {
 		return
 	}
 
+	fmt.Println("Content-Type", config.contentType)
 	request.Header.Set("Content-Type", config.contentType)
 	request.Header.Set("User-Agent", config.userAgent)
 
