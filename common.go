@@ -17,13 +17,12 @@ type StopWatch struct {
 func (s *StopWatch) Start() {
 	s.start = time.Now()
 }
-
-var errorCount map[string]int
-var cancelCnt int = 0
-
 func (s *StopWatch) Stop() {
 	s.Elapsed = time.Now().Sub(s.start)
 }
+
+var errorCount map[string]int
+var cancelCnt int = 0
 
 func ReportAll() {
 	for key, value := range errorCount {

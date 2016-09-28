@@ -14,7 +14,33 @@ import (
 
 	//	"runtime/pprof"
 	"github.com/go-errors/errors"
+
+	"github.com/tsenart/tb"
 )
+
+var (
+	freq   time.Duration
+	bucket *tb.Bucket
+)
+
+func SetRatelimit(rate int64) *tb.Bucket {
+	fmt.Println("SetRatelimit: --- : ", rate)
+	freq = time.Duration(1e9 / rate)
+	bucket = tb.NewBucket(rate, freq)
+	return bucket
+}
+
+func TakeRatelimitToken(i int) {
+	if bucket != nil {
+		got := bucket.Take(1)
+		for got != 1 {
+			got = bucket.Take(1)
+			time.Sleep(freq)
+		}
+		var str = time.Now().Format("2006-01-02 15:04:05.000")
+		fmt.Printf("%02d %s %s\n", i, " >", str)
+	}
+}
 
 const (
 	FieldServerName  = "ServerName"
@@ -71,11 +97,13 @@ func (h *HTTPWorker) Run(i int) {
 	//	fmt.Println(fpath)
 
 	h.c.start.Done()
-	h.c.start.Wait()
+	h.c.startRun.Wait()
 
 	timer := time.NewTimer(h.c.config.executionTimeout)
 	var count int = 0
 	for job := range h.jobs {
+
+		TakeRatelimitToken(i)
 		count++
 		timer.Reset(h.c.config.executionTimeout)
 		asyncResult := h.send(job)

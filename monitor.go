@@ -60,6 +60,7 @@ func (m *Monitor) Run() {
 	m.c.start.Wait()
 
 	fmt.Printf("Benchmarking %s (be patient)\n", m.c.config.host)
+	m.c.startRun.Done()
 	sw := &StopWatch{}
 	sw.Start()
 
