@@ -37,8 +37,8 @@ func TakeRatelimitToken(i int) {
 			got = bucket.Take(1)
 			time.Sleep(freq)
 		}
-		var str = time.Now().Format("2006-01-02 15:04:05.000")
-		fmt.Printf("%02d %s %s\n", i, " >", str)
+		//var str = time.Now().Format("2006-01-02 15:04:05.000")
+		//fmt.Printf("%02d %s %s\n", i, " >", str)
 	}
 }
 
